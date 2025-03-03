@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import EmployeePortal from "./pages/EmployeePortal";
 import ManagerPortal from "./pages/ManagerPortal";
 import ReviewForm from "./pages/ReviewForm";
+import ReviewComparison from "./pages/ReviewComparison";
 import NotFound from "./pages/NotFound";
 import AppShell from "./components/layout/AppShell";
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/employee/review/:id" element={<ReviewForm />} />
             <Route path="/manager/portal" element={<ManagerPortal />} />
             <Route path="/manager/review/:id" element={<ReviewForm />} />
+            <Route path="/review/comparison/:id" element={<ReviewComparison />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

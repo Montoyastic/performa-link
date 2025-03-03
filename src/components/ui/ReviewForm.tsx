@@ -1,13 +1,13 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Check, ChevronLeft, ChevronRight, Save } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Save, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ReviewCategory {
   id: string;
@@ -21,6 +21,7 @@ interface ReviewFormProps {
   employeeName?: string;
   employeePosition?: string;
   reviewPeriod?: string;
+  reviewId?: string;
 }
 
 const ReviewForm: React.FC<ReviewFormProps> = ({
@@ -28,11 +29,14 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
   employeeName = "Your",
   employeePosition = "Position",
   reviewPeriod = "Q2 2023",
+  reviewId = "1",
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formValues, setFormValues] = useState<Record<string, any>>({});
+  const [isReviewComplete, setIsReviewComplete] = useState(false);
+  const [otherReviewExists, setOtherReviewExists] = useState(false);
+  const navigate = useNavigate();
 
-  // Sample review categories
   const reviewCategories: ReviewCategory[] = [
     {
       id: "performance",
@@ -86,6 +90,23 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
     }
   ];
 
+  useEffect(() => {
+    const mockCheckOtherReview = () => {
+      setTimeout(() => {
+        const otherExists = Math.random() > 0.5;
+        setOtherReviewExists(otherExists);
+        
+        const isComplete = localStorage.getItem(`review_${reviewId}_${isManager ? 'manager' : 'employee'}`);
+        if (isComplete) {
+          setIsReviewComplete(true);
+          setFormValues(JSON.parse(isComplete));
+        }
+      }, 1000);
+    };
+    
+    mockCheckOtherReview();
+  }, [reviewId, isManager]);
+
   const handleChange = (id: string, value: any) => {
     setFormValues(prev => ({
       ...prev,
@@ -96,7 +117,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
   const handleNext = () => {
     if (currentStep < reviewCategories.length - 1) {
       setCurrentStep(currentStep + 1);
-      // Smooth scroll to top of form
       document.getElementById('review-form-top')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
@@ -104,25 +124,73 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
   const handlePrev = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      // Smooth scroll to top of form
       document.getElementById('review-form-top')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   const handleSave = () => {
-    // Here you would typically save the form data to your backend
+    localStorage.setItem(`review_${reviewId}_${isManager ? 'manager' : 'employee'}`, JSON.stringify(formValues));
     console.log('Form values:', formValues);
     toast.success("Review saved successfully!");
   };
 
   const handleSubmit = () => {
-    // Here you would typically submit the form to your backend
+    localStorage.setItem(`review_${reviewId}_${isManager ? 'manager' : 'employee'}`, JSON.stringify(formValues));
     console.log('Form submitted:', formValues);
+    setIsReviewComplete(true);
     toast.success("Review submitted successfully!");
+  };
+
+  const handleViewComparison = () => {
+    navigate(`/review/comparison/${reviewId}`);
   };
 
   const currentCategory = reviewCategories[currentStep];
   const progress = ((currentStep + 1) / reviewCategories.length) * 100;
+
+  if (isReviewComplete) {
+    return (
+      <div id="review-form-top" className="w-full max-w-3xl mx-auto">
+        <Card className="border-green-100">
+          <CardHeader>
+            <CardTitle className="text-green-700 flex items-center">
+              <Check size={24} className="mr-2" />
+              Review Completed
+            </CardTitle>
+            <CardDescription>
+              {isManager 
+                ? `You have completed your review for ${employeeName}.` 
+                : `You have completed your self-assessment.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-6">
+              {otherReviewExists 
+                ? "Both reviews have been submitted. You can now view the comparison between the self-assessment and manager review."
+                : `Your review has been submitted. ${isManager ? "Waiting for employee self-assessment." : "Waiting for manager review."}`
+              }
+            </p>
+            
+            <div className="flex gap-4 flex-wrap">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsReviewComplete(false)}
+              >
+                View My Responses
+              </Button>
+              
+              {otherReviewExists && (
+                <Button onClick={handleViewComparison} className="bg-green-600 hover:bg-green-700">
+                  <FileText size={16} className="mr-2" />
+                  View Comparison Report
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div id="review-form-top" className="w-full max-w-3xl mx-auto">
@@ -144,7 +212,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="w-full bg-secondary rounded-full h-2 mb-6">
         <div 
           className="bg-primary h-2 rounded-full transition-all duration-300 ease-in-out"
@@ -250,7 +317,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
         )}
       </div>
 
-      {/* Mobile action buttons */}
       <div className="sm:hidden flex items-center gap-2 mb-6">
         <Button variant="outline" className="flex-1" onClick={handleSave}>
           <Save size={16} className="mr-2" />
